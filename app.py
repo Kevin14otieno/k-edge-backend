@@ -17,39 +17,38 @@ def download():
     if not url:
         return jsonify({"error": "No URL provided"})
 
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        "noplaylist": True
-    }
-
     try:
+        ydl_opts = {
+            "quiet": True,
+            "noplaylist": True,
+            "format": "bestvideo+bestaudio/best"
+        }
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
         video_url = None
 
-        # direct format
-        if info.get("url"):
-            video_url = info.get("url")
-
-        # 🔥 FIXED fallback
-        elif info.get("formats"):
-            formats = info.get("formats")
-
-            safe_formats = [
-                f for f in formats
+        # 🔥 FIX 1: use yt-dlp resolved URL (NOT raw info["url"])
+        if info.get("formats"):
+            # pick best combined playable format
+            formats = [
+                f for f in info["formats"]
                 if f.get("url")
-                and f.get("ext") == "mp4"
-                and f.get("acodec") != "none"
-                and f.get("vcodec") != "none"
             ]
 
-            if safe_formats:
+            if formats:
                 video_url = max(
-                    safe_formats,
-                    key=lambda x: x.get("height") or 0
+                    formats,
+                    key=lambda x: (
+                        x.get("height") or 0,
+                        x.get("tbr") or 0
+                    )
                 ).get("url")
+
+        # 🔥 FIX 2: fallback only if above fails
+        if not video_url:
+            video_url = info.get("url")
 
         return jsonify({
             "title": info.get("title"),
