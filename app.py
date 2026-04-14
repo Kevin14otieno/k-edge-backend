@@ -18,10 +18,9 @@ def download():
         return jsonify({"error": "No URL provided"})
 
     ydl_opts = {
-    "quiet": True,
-    "skip_download": True,
-    "noplaylist": True,
-    "format": "best[ext=mp4][height<=720]"
+        "quiet": True,
+        "skip_download": True,
+        "noplaylist": True
     }
 
     try:
@@ -34,7 +33,7 @@ def download():
         if info.get("url"):
             video_url = info.get("url")
 
-       
+        # 🔥 FIXED fallback
         elif info.get("formats"):
             formats = info.get("formats")
 
@@ -64,4 +63,4 @@ def download():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port),
+    app.run(host="0.0.0.0", port=port)
