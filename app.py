@@ -10,6 +10,7 @@ CORS(app)
 def home():
     return "K-Edge Backend Running ✅"
 
+
 @app.route("/api/download")
 def download():
     url = request.args.get("url")
@@ -17,49 +18,30 @@ def download():
     if not url:
         return jsonify({"error": "No URL provided"})
 
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        "noplaylist": True
-    }
-
     try:
+        # 🔥 FIX: LET YT-DLP HANDLE AUDIO + VIDEO MERGING
+        ydl_opts = {
+            "quiet": True,
+            "noplaylist": True,
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mp4"
+        }
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-
-        video_url = None
-
-        # direct format
-        if info.get("url"):
-            video_url = info.get("url")
-
-        # 🔥 FIXED fallback
-        elif info.get("formats"):
-            formats = info.get("formats")
-
-            safe_formats = [
-                f for f in formats
-                if f.get("url")
-                and f.get("ext") == "mp4"
-                and f.get("acodec") != "none"
-                and f.get("vcodec") != "none"
-            ]
-
-            if safe_formats:
-                video_url = max(
-                    safe_formats,
-                    key=lambda x: x.get("height") or 0
-                ).get("url")
 
         return jsonify({
             "title": info.get("title"),
             "thumbnail": info.get("thumbnail"),
             "duration": info.get("duration"),
-            "video_url": video_url
+
+            # 🔥 FIXED: proper playable stream
+            "video_url": info.get("url")
         })
 
     except Exception as e:
         return jsonify({"error": str(e)})
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
