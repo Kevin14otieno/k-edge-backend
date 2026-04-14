@@ -29,19 +29,27 @@ def download():
 
         video_url = None
 
-        # direct url
+        # direct format
         if info.get("url"):
             video_url = info.get("url")
 
-        # fallback formats
+       
         elif info.get("formats"):
-            formats = [f for f in info["formats"] if f.get("url")]
+            formats = info.get("formats")
 
-            if formats:
+            safe_formats = [
+                f for f in formats
+                if f.get("url")
+                and f.get("ext") == "mp4"
+                and f.get("acodec") != "none"
+                and f.get("vcodec") != "none"
+            ]
+
+            if safe_formats:
                 video_url = max(
-    formats,
-    key=lambda x: x.get("height") or 0
-).get("url")
+                    safe_formats,
+                    key=lambda x: x.get("height") or 0
+                ).get("url")
 
         return jsonify({
             "title": info.get("title"),
@@ -53,7 +61,6 @@ def download():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# 🔥 IMPORTANT FOR RENDER
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
