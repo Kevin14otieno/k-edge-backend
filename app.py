@@ -38,7 +38,10 @@ def download():
             formats = [f for f in info["formats"] if f.get("url")]
 
             if formats:
-                video_url = max(formats, key=lambda x: x.get("height", 0)).get("url")
+                video_url = max(
+    formats,
+    key=lambda x: x.get("height") or 0
+).get("url")
 
         return jsonify({
             "title": info.get("title"),
