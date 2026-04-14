@@ -18,9 +18,11 @@ def download():
         return jsonify({"error": "No URL provided"})
 
     ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        "noplaylist": True
+    "quiet": True,
+    "skip_download": True,
+    "noplaylist": True,
+    "cookiefile": "cookies.txt",  #  IMPORTANT
+    "format": "best[ext=mp4][height<=720]"
     }
 
     try:
