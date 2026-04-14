@@ -76,30 +76,41 @@ def mp3():
 
     try:
         file_id = str(uuid.uuid4())
-        audio_path = f"/tmp/{file_id}.mp3"
+        output_file = f"/tmp/{file_id}.mp3"
 
+        # STEP 1: FORCE BEST AUDIO ONLY (IMPORTANT FIX)
         ydl_opts = {
             "format": "bestaudio/best",
             "outtmpl": f"/tmp/{file_id}.%(ext)s",
-            "quiet": True
+            "quiet": True,
+            "noplaylist": True
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            input_file = ydl.prepare_filename(info)
 
-        # Convert to MP3 using ffmpeg
+        # get downloaded file path
+        input_file = ydl.prepare_filename(info)
+
+        # STEP 2: FORCE FFMPEG CONVERSION (CLEAN)
         command = [
             "ffmpeg",
+            "-y",
             "-i", input_file,
             "-vn",
+            "-acodec", "libmp3lame",
             "-ab", "192k",
-            "-ar", "44100",
-            "-y",
-            audio_path
+            output_file
         ]
 
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # DEBUG (VERY IMPORTANT)
+        if result.returncode != 0:
+            return jsonify({
+                "error": "FFmpeg conversion failed",
+                "details": result.stderr.decode()
+            })
 
         return jsonify({
             "download_url": f"https://k-edge-backend.onrender.com/download/{file_id}.mp3"
@@ -107,7 +118,6 @@ def mp3():
 
     except Exception as e:
         return jsonify({"error": str(e)})
-
 
 # =========================
 # FILE DOWNLOAD SERVER
