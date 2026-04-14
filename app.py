@@ -17,59 +17,41 @@ def download():
     if not url:
         return jsonify({"error": "No URL provided"})
 
-    # OPTIONAL: YouTube cookies support (if file exists)
     ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        "noplaylist": True,
+    "quiet": True,
+    "skip_download": True,
+    "noplaylist": True,
+    "cookiefile": "cookies.txt",  #  IMPORTANT
+    "format": "best[ext=mp4][height<=720]"
     }
-
-    if os.path.exists("cookies.txt"):
-        ydl_opts["cookiefile"] = "cookies.txt"
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
-        formats = info.get("formats", [])
         video_url = None
 
-        # -----------------------------
-        # 1. Progressive formats (BEST: audio + video)
-        # -----------------------------
-        progressive = [
-            f for f in formats
-            if f.get("url")
-            and f.get("acodec") != "none"
-            and f.get("vcodec") != "none"
-        ]
+        # direct format
+        if info.get("url"):
+            video_url = info.get("url")
 
-        if progressive:
-            video_url = max(
-                progressive,
-                key=lambda x: x.get("height") or 0
-            ).get("url")
+       
+        elif info.get("formats"):
+            formats = info.get("formats")
 
-        # -----------------------------
-        # 2. Fallback: video-only formats
-        # -----------------------------
-        elif formats:
-            video_only = [
+            safe_formats = [
                 f for f in formats
-                if f.get("url") and f.get("vcodec") != "none"
+                if f.get("url")
+                and f.get("ext") == "mp4"
+                and f.get("acodec") != "none"
+                and f.get("vcodec") != "none"
             ]
 
-            if video_only:
+            if safe_formats:
                 video_url = max(
-                    video_only,
+                    safe_formats,
                     key=lambda x: x.get("height") or 0
                 ).get("url")
-
-        # -----------------------------
-        # 3. Final fallback (last resort)
-        # -----------------------------
-        if not video_url:
-            video_url = info.get("url")
 
         return jsonify({
             "title": info.get("title"),
@@ -79,13 +61,8 @@ def download():
         })
 
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        })
+        return jsonify({"error": str(e)})
 
-# -----------------------------
-# RENDER ENTRY POINT
-# -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port),  replace here
