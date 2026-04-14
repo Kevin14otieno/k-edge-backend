@@ -1,9 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
+import os
 
 app = Flask(__name__)
-CORS(app)  # 🔥 allow frontend access
+CORS(app)
+
+@app.route("/")
+def home():
+    return "K-Edge Backend Running ✅"
 
 @app.route("/api/download")
 def download():
@@ -22,23 +27,18 @@ def download():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
-        # 🔥 FIX: Extract video properly
         video_url = None
 
-        # Case 1: direct url exists
+        # direct url
         if info.get("url"):
             video_url = info.get("url")
 
-        # Case 2: use formats (IMPORTANT)
+        # fallback formats
         elif info.get("formats"):
-            formats = info.get("formats")
+            formats = [f for f in info["formats"] if f.get("url")]
 
-            # filter valid formats
-            valid_formats = [f for f in formats if f.get("url")]
-
-            if valid_formats:
-                # pick best quality (last one usually best)
-                video_url = valid_formats[-1]["url"]
+            if formats:
+                video_url = max(formats, key=lambda x: x.get("height", 0)).get("url")
 
         return jsonify({
             "title": info.get("title"),
@@ -50,5 +50,7 @@ def download():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+# 🔥 IMPORTANT FOR RENDER
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
